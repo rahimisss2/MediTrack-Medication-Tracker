@@ -17,9 +17,9 @@ st.set_page_config(
 # --- SIMULATED DATA (DATABASE) ---
 if 'schedule' not in st.session_state:
     st.session_state.schedule = [
-        {"id": 1, "name": "Metformin (Diabetes)", "time": "08:00 AM", "dose": "1 Tablet", "status": "Not Taken", "color": "White, Round"},
-        {"id": 2, "name": "Amlodipine (High Blood Pressure)", "time": "08:00 PM", "dose": "1/2 Tablet", "status": "Not Taken", "color": "Yellow, Rectangular"},
-        {"id": 3, "name": "Paracetamol (Pain Relief)", "time": "12:00 PM", "dose": "2 Tablets", "status": "Taken", "color": "White, Oblong"}
+        {"id": 1, "name": "Metformin (Diabetes)", "time": "08:00 AM", "dose": "1 Tablet", "status": "Taken", "color": "White, Round"},
+        {"id": 2, "name": "Amlodipine (High Blood Pressure)", "time": "08:00 PM", "dose": "1/2 Tablet", "status": "Taken", "color": "Yellow, Rectangular"},
+        {"id": 3, "name": "Paracetamol (Pain Relief)", "time": "12:00 PM", "dose": "2 Tablets", "status": "Next up", "color": "White, Oblong"}
     ]
 
 # Demo state is scoped to the current Streamlit session.
@@ -55,6 +55,10 @@ def simulate_paracetamol_alarm():
     st.session_state.alarm_pending = True
     st.session_state.speak_alarm = True
     st.session_state.stop_alarm_audio = False
+    st.session_state.navigation = "Schedule"
+    paracetamol = next(s for s in st.session_state.schedule if s["id"] == 3)
+    if paracetamol["status"] != "Taken":
+        st.session_state.scan_item_id = 3
 
 
 def dismiss_alarm():
@@ -82,7 +86,7 @@ def complete_intake(item_id):
     })
     if item_id == st.session_state.alarm_medication_id:
         dismiss_alarm()
-    if item_id == 1:
+    if item_id == 3:
         st.session_state.caregiver_sos_pending = False
     st.session_state.scan_item_id = None
     st.session_state.scan_results.pop(item_id, None)
@@ -120,6 +124,27 @@ def history_rows():
             ),
         })
     return rows
+
+
+# FUTURE REAL GEMINI API INTEGRATION ARCHITECTURE
+# def request_gemini_review(photo_bytes, prescription_reference):
+#     # Configure credentials securely on the server, never in browser code.
+#     # Send an image and reference to a multimodal service adapter.
+#     # Validate the structured response; handle timeouts and uncertain results.
+#     # Record actual provider/version/request provenance only after a real call.
+#     # Require qualified human review; do not treat visual matching as dose safety.
+#     # Keep this demo path separate from genuine provider evidence.
+#     raise NotImplementedError("No Gemini service is connected to this prototype.")
+
+
+def simulate_pill_analysis(item_id, photo_bytes):
+    """Cache only a demo workflow result; do not identify a medication."""
+    fingerprint = hashlib.sha256(photo_bytes).hexdigest()
+    if st.session_state.scan_results.get(item_id) != fingerprint:
+        st.session_state.scan_results.pop(item_id, None)
+        with st.spinner("AI is analyzing pill features..."):
+            time.sleep(2)
+        st.session_state.scan_results[item_id] = fingerprint
 
 
 def voice_alert(autoplay):
@@ -184,23 +209,16 @@ st.write("---")
 # Section 1: Patient Profile & Daily Status
 with st.sidebar:
     page = st.radio("Navigation", ["Schedule", "History"], key="navigation")
-    st.button("Simulate Alarm", on_click=simulate_paracetamol_alarm)
     st.header("👤 Patient Profile")
     st.write("**Patient Name:** Mr. Ahmad")
     st.write("**Age:** 67 Years")
     st.write(f"**Daily Adherence Rate:** {adherence}%")
-    with st.expander("Demo Controls"):
+    with st.expander("🛠️ Demo Controls", expanded=True):
         st.caption("Demo alarm only. This does not schedule background reminders.")
-        metformin_taken = next(
-            s["status"] == "Taken" for s in st.session_state.schedule if s["id"] == 1
-        )
         st.button(
-            "Simulate 8:00 AM Alarm",
-            on_click=simulate_alarm,
-            disabled=metformin_taken,
+            "Simulate 12:00 PM Alarm",
+            on_click=simulate_paracetamol_alarm,
         )
-        if metformin_taken:
-            st.caption("Metformin is already logged; another alarm will not reset it.")
         st.button(
             "Simulate Missed Dose Event",
             on_click=simulate_missed_dose,
@@ -230,7 +248,7 @@ if st.session_state.stop_alarm_audio:
 if st.session_state.caregiver_sos_pending:
     st.error(
         "🚨 CAREGIVER SOS ALERT — SIMULATION ONLY: Mr. Ahmad has missed his "
-        "scheduled 8:00 AM Metformin dose in this demo scenario. "
+        "scheduled 12:00 PM Paracetamol dose in this demo scenario. "
         "An automated alert notification and SMS dispatch are being simulated "
         "for his designated caregiver (Son: +6012-3456789). "
         "No notification or SMS has actually been sent."
@@ -255,7 +273,7 @@ if page == "History":
     st.caption(
         "Intake records from this Streamlit session, newest first. "
         "Records are not saved after the session ends. "
-        "The initial example dose is not presented as a verified history record."
+        "The two prefilled example doses are not presented as verified history records."
     )
     rows = history_rows()
     if rows:
@@ -283,8 +301,17 @@ st.image(
     width=120,
 )
 st.write(f"**{taken}/{total} taken today**")
+st.caption(
+    "Demo starting state: two sample doses are prefilled as Taken. "
+    "This is not a real adherence record or a recommendation to take medication."
+)
+if st.session_state.alarm_pending and next(
+    s["status"] == "Taken" for s in st.session_state.schedule if s["id"] == 3
+):
+    st.info("Paracetamol is already logged. Replaying the alarm will not record another dose.")
 
-for item in st.session_state.schedule:
+
+def render_medication_card(item):
     col1, col2, col3 = st.columns([2, 1, 1])
     with col1:
         st.write(f"**{item['name']}**")
@@ -293,7 +320,7 @@ for item in st.session_state.schedule:
         if item['status'] == "Taken":
             st.success("✅ Taken")
         else:
-            st.warning("Next up" if item["id"] == 1 else item['status'])
+            st.warning(item['status'])
     with col3:
         if item['status'] != "Taken":
             if st.button("Scan Pill with AI", key=f"btn_{item['id']}"):
@@ -309,21 +336,13 @@ for item in st.session_state.schedule:
             )
             st.info(f"Example appearance for {item['name']}: {item['color']}")
             img_file = st.camera_input(
-                "Take a photo for the demo scan", key=f"camera_{item['id']}"
+                "Pill photo", key=f"camera_{item['id']}"
             )
             if img_file is not None:
-                fingerprint = hashlib.sha256(img_file.getvalue()).hexdigest()
-                if st.session_state.scan_results.get(item["id"]) != fingerprint:
-                    # Clear the prior result before a replacement capture is processed.
-                    st.session_state.scan_results.pop(item["id"], None)
-                    with st.spinner(
-                        "AI is analyzing pill features (shape, size, markings)..."
-                    ):
-                        time.sleep(2)
-                    st.session_state.scan_results[item["id"]] = fingerprint
+                simulate_pill_analysis(item["id"], img_file.getvalue())
                 st.success(
-                    "✅ DEMO SCAN SUCCESSFUL: Simulated workflow completed for Mr. Ahmad. "
-                    "Medicine identity and dosage have NOT been verified."
+                    "✅ AI VERIFICATION SIMULATION SUCCESSFUL: Demo scan completed "
+                    "for Mr. Ahmad. Medicine identity and dosage have NOT been verified."
                 )
                 st.caption(
                     "Compare the prescription label yourself. "
@@ -342,3 +361,8 @@ for item in st.session_state.schedule:
                 st.session_state.scan_results.pop(item["id"], None)
                 st.rerun()
     st.divider()
+
+
+for item in st.session_state.schedule:
+    with st.container(border=True):
+        render_medication_card(item)
