@@ -8,7 +8,7 @@ from zoneinfo import ZoneInfo
 
 # Configure a mobile-friendly page
 st.set_page_config(
-    page_title="MediTrack AI",
+    page_title="MediTrack",
     page_icon="💊",
     layout="centered",
     initial_sidebar_state="collapsed",
@@ -197,7 +197,7 @@ total = len(st.session_state.schedule)
 adherence = round(100 * taken / total) if total else 0
 
 # --- APP USER INTERFACE (UI) ---
-st.title("💊 MediTrack AI")
+st.title("💊 MediTrack")
 st.subheader("Smart Medication Reminder & Scanning Hub")
 st.caption(
     "Demonstration only. Example medications and doses are not medical advice. "

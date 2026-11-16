@@ -1,4 +1,4 @@
-# MediTrack AI
+# MediTrack
 
 An English-language personal medication schedule and dose tracker.
 

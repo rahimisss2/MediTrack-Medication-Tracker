@@ -1,6 +1,6 @@
 kind = "web"
 previewPath = "/"
-title = "MediTrack AI"
+title = "MediTrack"
 description = "An English-language personal medication schedule and dose tracker with browser-local persistence and a clearly labeled camera demo, not medical identification."
 version = "1.0.0"
 id = "artifacts/meditrack"
