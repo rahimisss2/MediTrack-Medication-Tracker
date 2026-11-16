@@ -25,7 +25,7 @@ if 'schedule' not in st.session_state:
 # Demo state is scoped to the current Streamlit session.
 for key, default in {
     "alarm_pending": False,
-    "alarm_medication_id": 1,
+    "alarm_medication_id": 3,
     "speak_alarm": False,
     "stop_alarm_audio": False,
     "scan_item_id": None,
@@ -39,17 +39,6 @@ for key, default in {
 
 
 def simulate_alarm():
-    medication = next(s for s in st.session_state.schedule if s["id"] == 1)
-    # Replaying an alarm must never undo an already recorded dose.
-    if medication["status"] != "Taken":
-        medication["status"] = "Next up"
-        st.session_state.alarm_medication_id = 1
-        st.session_state.alarm_pending = True
-        st.session_state.speak_alarm = True
-        st.session_state.stop_alarm_audio = False
-
-
-def simulate_paracetamol_alarm():
     # Demo playback must not reset Paracetamol's already recorded intake.
     st.session_state.alarm_medication_id = 3
     st.session_state.alarm_pending = True
@@ -62,9 +51,12 @@ def simulate_paracetamol_alarm():
 
 
 def dismiss_alarm():
+    """Clear all active demo alerts without changing medication records."""
     st.session_state.alarm_pending = False
     st.session_state.speak_alarm = False
     st.session_state.stop_alarm_audio = True
+    st.session_state.caregiver_sos_pending = False
+    st.session_state.caregiver_sos_at = None
 
 
 def complete_intake(item_id):
@@ -98,6 +90,7 @@ def simulate_missed_dose():
     st.session_state.caregiver_sos_at = datetime.now(
         ZoneInfo("Asia/Kuala_Lumpur")
     ).isoformat(timespec="seconds")
+    st.session_state.navigation = "Schedule"
 
 
 def history_rows():
@@ -150,8 +143,6 @@ def simulate_pill_analysis(item_id, photo_bytes):
 def voice_alert(autoplay):
     message = (
         "Mr. Ahmad, it is 12:00 PM. Please take your Paracetamol tablets now."
-        if st.session_state.alarm_medication_id == 3 else
-        "Mr. Ahmad, it is 8:00 AM. Please take your Metformin tablet now."
     )
     # A manual replay is necessary on browsers that block automatic speech.
     components.html(
@@ -168,6 +159,7 @@ def voice_alert(autoplay):
           const speech = new SpeechSynthesisUtterance(MESSAGE);
           speech.lang = "en-US";
           speech.rate = 0.9;
+          speech.volume = 1.0;
           const voices = speechSynthesis.getVoices();
           const voice = voices.find(v => /^en[-_]US$/i.test(v.lang))
             || voices.find(v => /^en\b/i.test(v.lang));
@@ -216,11 +208,11 @@ with st.sidebar:
     with st.expander("🛠️ Demo Controls", expanded=True):
         st.caption("Demo alarm only. This does not schedule background reminders.")
         st.button(
-            "Simulate 12:00 PM Alarm",
-            on_click=simulate_paracetamol_alarm,
+            "Simulate Alarm",
+            on_click=simulate_alarm,
         )
         st.button(
-            "Simulate Missed Dose Event",
+            "Simulate Missed Dose",
             on_click=simulate_missed_dose,
             help="Demonstrates a caregiver escalation. No SMS or notification is sent.",
         )
@@ -247,26 +239,22 @@ if st.session_state.stop_alarm_audio:
 # Keep urgent escalation visible on both Schedule and History.
 if st.session_state.caregiver_sos_pending:
     st.error(
-        "🚨 CAREGIVER SOS ALERT — SIMULATION ONLY: Mr. Ahmad has missed his "
-        "scheduled 12:00 PM Paracetamol dose in this demo scenario. "
-        "An automated alert notification and SMS dispatch are being simulated "
-        "for his designated caregiver (Son: +6012-3456789). "
-        "No notification or SMS has actually been sent."
+        "**SIMULATION ONLY — mock notification. "
+        "No notification or SMS has actually been sent.**\n\n"
+        "🚨 CAREGIVER SOS ALERT: Mr. Ahmad has missed his scheduled "
+        "12:00 PM Paracetamol dose. An automated SMS alert notification has "
+        "been dispatched to his designated caregiver (Son: +6012-3456789)."
     )
     st.caption(f"Demo event time: {st.session_state.caregiver_sos_at} (MYT)")
-    if st.button("Dismiss simulated caregiver alert"):
-        st.session_state.caregiver_sos_pending = False
-        st.rerun()
 
 if st.session_state.alarm_pending:
-    if st.session_state.alarm_medication_id == 3:
-        st.warning("⚠️ ATTENTION: It is 12:00 PM. Time to take your Paracetamol tablets!")
-    else:
-        st.warning("⚠️ ATTENTION: It is 8:00 AM. Time to take your Metformin tablet!")
+    st.warning("⚠️ ATTENTION: It is 12:00 PM. Time to take your Paracetamol tablets!")
     st.caption("Simulated reminder using the example prescription.")
     voice_alert(st.session_state.speak_alarm)
     st.session_state.speak_alarm = False
-    st.button("Dismiss Alarm", on_click=dismiss_alarm)
+
+if st.session_state.alarm_pending or st.session_state.caregiver_sos_pending:
+    st.button("Dismiss", on_click=dismiss_alarm)
 
 if page == "History":
     st.header("History")

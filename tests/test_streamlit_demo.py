@@ -88,18 +88,19 @@ class DemoTests(unittest.TestCase):
     def test_noon_alarm_opens_camera_without_changing_intake(self):
         self.assertEqual(self.namespace["taken"], 2)
         before = copy.deepcopy(self.st.session_state.schedule)
-        self.click("Simulate 12:00 PM Alarm")
+        self.click("Simulate Alarm")
         self.render()
         self.assertIn(("camera", "Pill photo"), self.events)
         self.assertIn(("warning", "⚠️ ATTENTION: It is 12:00 PM. Time to take your Paracetamol tablets!"), self.events)
         speech = next(value for name, value in self.events if name == "html")
         self.assertIn("Mr. Ahmad, it is 12:00 PM. Please take your Paracetamol tablets now.", speech)
         self.assertIn('speech.lang = "en-US"', speech)
+        self.assertIn("speech.volume = 1.0", speech)
         self.assertEqual(before, self.st.session_state.schedule)
         self.assertEqual(self.st.session_state.intake_log, [])
 
     def test_capture_and_manual_completion_update_history_and_progress(self):
-        self.click("Simulate 12:00 PM Alarm")
+        self.click("Simulate Alarm")
         self.photo = types.SimpleNamespace(getvalue=lambda: b"demo-photo")
         sleep = self.render()
         sleep.assert_called_once_with(2)
@@ -122,14 +123,14 @@ class DemoTests(unittest.TestCase):
         self.assertIn("not verified by Gemini", rows[0]["Verification"])
 
     def test_sos_is_only_a_simulation_and_completion_clears_it(self):
-        self.click("Simulate Missed Dose Event")
+        self.click("Simulate Missed Dose")
         self.render()
         banner = next(value for name, value in self.events if name == "error")
         self.assertIn("12:00 PM Paracetamol", banner)
         self.assertIn("SIMULATION ONLY", banner)
         self.assertIn("No notification or SMS has actually been sent.", banner)
         self.assertFalse(self.st.session_state.intake_log)
-        self.click("Simulate 12:00 PM Alarm")
+        self.click("Simulate Alarm")
         self.photo = types.SimpleNamespace(getvalue=lambda: b"demo-photo")
         self.render()
         self.click("Complete & Log Intake")
@@ -138,14 +139,46 @@ class DemoTests(unittest.TestCase):
     def test_alarm_from_history_navigates_to_schedule_and_dismisses(self):
         self.st.session_state.navigation = "History"
         self.render()
-        self.click("Simulate 12:00 PM Alarm")
+        self.click("Simulate Alarm")
         self.assertEqual(self.st.session_state.navigation, "Schedule")
         self.render()
-        self.click("Dismiss Alarm")
+        self.click("Dismiss")
         self.render()
         self.assertFalse(self.st.session_state.alarm_pending)
         self.assertTrue(any(name == "html" and "speechSynthesis.cancel()" in value
                             for name, value in self.events))
+
+    def test_dismiss_clears_both_banners_and_stops_audio_without_logging(self):
+        before = copy.deepcopy(self.st.session_state.schedule)
+        self.click("Simulate Alarm")
+        self.render()
+        # Unrelated reruns must not repeat the spoken reminder.
+        self.render()
+        speech = next(value for name, value in self.events if name == "html")
+        self.assertIn("if (false)", speech)
+        self.click("Simulate Missed Dose")
+        self.render()
+        self.assertTrue(self.st.session_state.alarm_pending)
+        self.assertTrue(self.st.session_state.caregiver_sos_pending)
+        self.click("Dismiss")
+        self.render()
+        self.assertFalse(self.st.session_state.alarm_pending)
+        self.assertFalse(self.st.session_state.caregiver_sos_pending)
+        self.assertIsNone(self.st.session_state.caregiver_sos_at)
+        self.assertEqual(before, self.st.session_state.schedule)
+        self.assertEqual(self.st.session_state.intake_log, [])
+        self.assertNotIn("Dismiss", self.buttons)
+
+    def test_sos_only_dismissal_from_history(self):
+        self.st.session_state.navigation = "History"
+        self.render()
+        self.click("Simulate Missed Dose")
+        self.assertEqual(self.st.session_state.navigation, "Schedule")
+        self.render()
+        self.assertTrue(self.st.session_state.caregiver_sos_pending)
+        self.click("Dismiss")
+        self.render()
+        self.assertFalse(self.st.session_state.caregiver_sos_pending)
 
 
 if __name__ == "__main__":
