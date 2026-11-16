@@ -354,3 +354,43 @@ def render_medication_card(item):
 for item in st.session_state.schedule:
     with st.container(border=True):
         render_medication_card(item)
+
+
+# --- DEMO CONTROLS APPENDED CODE ---
+import streamlit as st
+import streamlit.components.v1 as components
+
+st.sidebar.write("---")
+st.sidebar.subheader("🛠️ Demo Controls")
+
+if st.sidebar.button("Simulate Alarm", key="appended_simulate_alarm"):
+    st.session_state.trigger_demo_alarm = True
+    st.session_state.trigger_demo_sos = False
+
+if st.sidebar.button("Simulate Missed Dose", key="appended_simulate_missed_dose"):
+    st.session_state.trigger_demo_sos = True
+    st.session_state.trigger_demo_alarm = False
+
+if st.session_state.get('trigger_demo_alarm', False):
+    st.warning("⚠️ ATTENTION: It is 12:00 PM. Time to take your Paracetamol tablets!")
+    components.html(
+        """
+        <script>
+            var msg = new SpeechSynthesisUtterance();
+            msg.text = "Mr. Ahmad, it is 12:00 PM. Please take your Paracetamol tablets now.";
+            msg.lang = "en-US";
+            window.speechSynthesis.speak(msg);
+        </script>
+        """,
+        height=0,
+    )
+    if st.button("Dismiss Alarm Notification", key="appended_dismiss_alarm"):
+        st.session_state.trigger_demo_alarm = False
+        st.rerun()
+
+if st.session_state.get('trigger_demo_sos', False):
+    st.caption("Simulation only — the following is a mock notification. No SMS has actually been sent.")
+    st.error("🚨 CAREGIVER SOS ALERT: Mr. Ahmad has missed his scheduled 12:00 PM Paracetamol dose. An automated SMS alert notification has been dispatched to his designated caregiver (Son: +6012-3456789).")
+    if st.button("Dismiss SOS Notification", key="appended_dismiss_sos"):
+        st.session_state.trigger_demo_sos = False
+        st.rerun()

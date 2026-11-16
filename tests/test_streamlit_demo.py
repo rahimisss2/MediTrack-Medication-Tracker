@@ -21,6 +21,14 @@ class Context:
         return False
 
 
+class Sidebar(Context):
+    def __init__(self, streamlit):
+        self.streamlit = streamlit
+
+    def __getattr__(self, name):
+        return getattr(self.streamlit, name)
+
+
 class StopRender(Exception):
     pass
 
@@ -31,10 +39,11 @@ class DemoTests(unittest.TestCase):
         self.code = compile(ast.parse(self.source), "main.py", "exec")
         self.st = types.ModuleType("streamlit")
         self.st.session_state = State()
-        self.st.sidebar = Context()
+        self.st.sidebar = Sidebar(self.st)
         self.events = []
         self.buttons = {}
         self.photo = None
+        self.pressed = None
         for name in [
             "title", "subheader", "caption", "write", "header", "warning",
             "success", "info", "image", "divider", "error", "table",
@@ -45,7 +54,12 @@ class DemoTests(unittest.TestCase):
         self.st.spinner = lambda text: self.events.append(("spinner", text)) or Context()
         self.st.columns = lambda *_: [Context(), Context(), Context()]
         self.st.radio = lambda *_, **__: self.st.session_state.get("navigation", "Schedule")
-        self.st.button = lambda label, **kw: self.buttons.update({label: kw}) or False
+        def button(label, **kw):
+            key = kw.get("key", label)
+            self.buttons.setdefault(label, kw)
+            self.buttons[key] = kw
+            return self.pressed == key
+        self.st.button = button
         self.st.camera_input = lambda label, **_: (
             self.events.append(("camera", label)) or self.photo
         )
@@ -179,6 +193,31 @@ class DemoTests(unittest.TestCase):
         self.click("Dismiss")
         self.render()
         self.assertFalse(self.st.session_state.caregiver_sos_pending)
+
+    def test_appended_controls_toggle_their_own_alarm_and_sos(self):
+        before = copy.deepcopy(self.st.session_state.schedule)
+        self.pressed = "appended_simulate_alarm"
+        self.render()
+        self.assertTrue(self.st.session_state.trigger_demo_alarm)
+        self.assertFalse(self.st.session_state.trigger_demo_sos)
+        self.assertTrue(any(name == "html" and 'msg.lang = "en-US"' in value
+                            for name, value in self.events))
+        self.pressed = "appended_simulate_missed_dose"
+        self.render()
+        self.assertTrue(self.st.session_state.trigger_demo_sos)
+        self.assertFalse(self.st.session_state.trigger_demo_alarm)
+        self.assertTrue(any(name == "error" and "CAREGIVER SOS ALERT" in value
+                            for name, value in self.events))
+        self.pressed = "appended_dismiss_sos"
+        self.render()
+        self.assertFalse(self.st.session_state.trigger_demo_sos)
+        self.pressed = "appended_simulate_alarm"
+        self.render()
+        self.pressed = "appended_dismiss_alarm"
+        self.render()
+        self.assertFalse(self.st.session_state.trigger_demo_alarm)
+        self.assertEqual(before, self.st.session_state.schedule)
+        self.assertEqual(self.st.session_state.intake_log, [])
 
 
 if __name__ == "__main__":
