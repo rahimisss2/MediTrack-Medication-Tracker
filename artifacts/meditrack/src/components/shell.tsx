@@ -19,7 +19,7 @@ export function Shell({ children }: { children: ReactNode }) {
       <aside className="hidden md:flex md:w-64 shrink-0 flex-col bg-sidebar text-sidebar-foreground p-6 sticky top-0 h-[100dvh]">
         <Link href="/" className="flex items-center gap-3 mb-10" data-testid="link-home-logo">
           <span className="grid place-items-center size-11 rounded-full bg-sidebar-primary text-sidebar-primary-foreground"><Pill className="size-5" /></span>
-          <span className="font-display text-2xl leading-none">MediTrack</span>
+          <span className="font-display text-2xl leading-none">MediTrack<span className="block mt-2 font-sans text-xs leading-normal opacity-80">Track Your Medicine</span></span>
         </Link>
         <nav aria-label="Main" className="flex flex-col gap-1.5">
           {NAV.map(({ href, label, icon: Icon }) => {
@@ -41,7 +41,7 @@ export function Shell({ children }: { children: ReactNode }) {
       <div className="flex-1 min-w-0 pb-28 md:pb-10">
         <header className="md:hidden flex items-center gap-3 px-5 pt-5">
           <span className="grid place-items-center size-10 rounded-full bg-primary text-primary-foreground"><Pill className="size-5" /></span>
-          <span className="font-display text-xl text-primary">MediTrack</span>
+          <span className="font-display text-xl text-primary">MediTrack<span className="block font-sans text-xs leading-normal opacity-80">Track Your Medicine</span></span>
         </header>
         {storageError && (
           <div role="alert" className="mx-5 md:mx-10 mt-5 flex items-start gap-3 rounded-2xl border-2 border-destructive/40 bg-destructive/10 p-4 text-destructive" data-testid="status-storage-error">
