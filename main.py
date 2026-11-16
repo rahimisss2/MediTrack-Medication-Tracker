@@ -26,6 +26,7 @@ if 'schedule' not in st.session_state:
 for key, default in {
     "alarm_pending": False,
     "speak_alarm": False,
+    "stop_alarm_audio": False,
     "scan_item_id": None,
     "scan_results": {},
     "intake_log": [],
@@ -43,6 +44,13 @@ def simulate_alarm():
         medication["status"] = "Next up"
         st.session_state.alarm_pending = True
         st.session_state.speak_alarm = True
+        st.session_state.stop_alarm_audio = False
+
+
+def dismiss_alarm():
+    st.session_state.alarm_pending = False
+    st.session_state.speak_alarm = False
+    st.session_state.stop_alarm_audio = True
 
 
 def complete_intake(item_id):
@@ -63,8 +71,7 @@ def complete_intake(item_id):
         "verification": "Simulated camera scan — not verified by Gemini Vision API",
     })
     if item_id == 1:
-        st.session_state.alarm_pending = False
-        st.session_state.speak_alarm = False
+        dismiss_alarm()
         st.session_state.caregiver_sos_pending = False
     st.session_state.scan_item_id = None
     st.session_state.scan_results.pop(item_id, None)
@@ -106,13 +113,12 @@ def history_rows():
 
 def voice_alert(autoplay):
     message = (
-        "Encik Ahmad, waktu ini jam 8:00 pagi. "
-        "Sila ambil satu biji ubat Metformin anda sekarang."
+        "Mr. Ahmad, it is 8:00 AM. Please take your Metformin tablet now."
     )
     # A manual replay is necessary on browsers that block automatic speech.
     components.html(
-        """
-        <button id="replay" type="button">Play Malay voice reminder</button>
+        r"""
+        <button id="replay" type="button">Play English voice reminder</button>
         <p id="speech-status" role="status"></p>
         <script>
         const status = document.getElementById("speech-status");
@@ -122,9 +128,11 @@ def voice_alert(autoplay):
             return;
           }
           const speech = new SpeechSynthesisUtterance(MESSAGE);
-          speech.lang = "ms-MY";
-          speech.rate = 0.85;
-          const voice = speechSynthesis.getVoices().find(v => /^ms/i.test(v.lang));
+          speech.lang = "en-US";
+          speech.rate = 0.9;
+          const voices = speechSynthesis.getVoices();
+          const voice = voices.find(v => /^en[-_]US$/i.test(v.lang))
+            || voices.find(v => /^en\b/i.test(v.lang));
           if (voice) speech.voice = voice;
           speech.onstart = () => status.textContent = "Playing reminder.";
           speech.onend = () => status.textContent = "Reminder finished.";
@@ -167,7 +175,7 @@ with st.sidebar:
     st.write("**Patient Name:** Mr. Ahmad")
     st.write("**Age:** 67 Years")
     st.write(f"**Daily Adherence Rate:** {adherence}%")
-    with st.expander("Simulation Control"):
+    with st.expander("Demo Controls"):
         st.caption("Demo alarm only. This does not schedule background reminders.")
         metformin_taken = next(
             s["status"] == "Taken" for s in st.session_state.schedule if s["id"] == 1
@@ -194,6 +202,15 @@ with st.sidebar:
         "Gemini Vision API is not connected or used in this demo; "
         "camera verification is simulated."
     )
+
+# Stop queued or active speech after dismissing an alarm or confirming intake.
+if st.session_state.stop_alarm_audio:
+    components.html(
+        '<script>if ("speechSynthesis" in window) '
+        '{ window.speechSynthesis.cancel(); }</script>',
+        height=0,
+    )
+    st.session_state.stop_alarm_audio = False
 
 # Keep urgent escalation visible on both Schedule and History.
 if st.session_state.caregiver_sos_pending:
@@ -233,6 +250,7 @@ if st.session_state.alarm_pending:
     st.caption("Simulated reminder using the example prescription.")
     voice_alert(st.session_state.speak_alarm)
     st.session_state.speak_alarm = False
+    st.button("Dismiss Alarm", on_click=dismiss_alarm)
 
 # A compact, accessible circular progress indicator; no app theme overrides.
 st.image(

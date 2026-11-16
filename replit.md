@@ -37,7 +37,7 @@ _Describe the high-level user-facing capabilities of this app once they exist._
 ## User preferences
 
 - All application language must be English.
-- For the Streamlit demo, use the user's requested Malay voice reminder; keep the visible interface in English.
+- For the Streamlit demo, use an English voice reminder (`en-US`) at speech rate `0.9`, and keep the visible interface in English.
 - Preserve the existing premium dark green React UI when adding functionality. The requested Streamlit modules belong in `main.py`; do not replace the live React preview.
 
 ## Gotchas
