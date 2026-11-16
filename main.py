@@ -25,6 +25,7 @@ if 'schedule' not in st.session_state:
 # Demo state is scoped to the current Streamlit session.
 for key, default in {
     "alarm_pending": False,
+    "alarm_medication_id": 1,
     "speak_alarm": False,
     "stop_alarm_audio": False,
     "scan_item_id": None,
@@ -42,9 +43,18 @@ def simulate_alarm():
     # Replaying an alarm must never undo an already recorded dose.
     if medication["status"] != "Taken":
         medication["status"] = "Next up"
+        st.session_state.alarm_medication_id = 1
         st.session_state.alarm_pending = True
         st.session_state.speak_alarm = True
         st.session_state.stop_alarm_audio = False
+
+
+def simulate_paracetamol_alarm():
+    # Demo playback must not reset Paracetamol's already recorded intake.
+    st.session_state.alarm_medication_id = 3
+    st.session_state.alarm_pending = True
+    st.session_state.speak_alarm = True
+    st.session_state.stop_alarm_audio = False
 
 
 def dismiss_alarm():
@@ -70,8 +80,9 @@ def complete_intake(item_id):
         "source": "manual confirmation after demo scan",
         "verification": "Simulated camera scan — not verified by Gemini Vision API",
     })
-    if item_id == 1:
+    if item_id == st.session_state.alarm_medication_id:
         dismiss_alarm()
+    if item_id == 1:
         st.session_state.caregiver_sos_pending = False
     st.session_state.scan_item_id = None
     st.session_state.scan_results.pop(item_id, None)
@@ -113,6 +124,8 @@ def history_rows():
 
 def voice_alert(autoplay):
     message = (
+        "Mr. Ahmad, it is 12:00 PM. Please take your Paracetamol tablets now."
+        if st.session_state.alarm_medication_id == 3 else
         "Mr. Ahmad, it is 8:00 AM. Please take your Metformin tablet now."
     )
     # A manual replay is necessary on browsers that block automatic speech.
@@ -171,6 +184,7 @@ st.write("---")
 # Section 1: Patient Profile & Daily Status
 with st.sidebar:
     page = st.radio("Navigation", ["Schedule", "History"], key="navigation")
+    st.button("Simulate Alarm", on_click=simulate_paracetamol_alarm)
     st.header("👤 Patient Profile")
     st.write("**Patient Name:** Mr. Ahmad")
     st.write("**Age:** 67 Years")
@@ -226,6 +240,16 @@ if st.session_state.caregiver_sos_pending:
         st.session_state.caregiver_sos_pending = False
         st.rerun()
 
+if st.session_state.alarm_pending:
+    if st.session_state.alarm_medication_id == 3:
+        st.warning("⚠️ ATTENTION: It is 12:00 PM. Time to take your Paracetamol tablets!")
+    else:
+        st.warning("⚠️ ATTENTION: It is 8:00 AM. Time to take your Metformin tablet!")
+    st.caption("Simulated reminder using the example prescription.")
+    voice_alert(st.session_state.speak_alarm)
+    st.session_state.speak_alarm = False
+    st.button("Dismiss Alarm", on_click=dismiss_alarm)
+
 if page == "History":
     st.header("History")
     st.caption(
@@ -245,12 +269,6 @@ if page == "History":
 
 # Section 2: Medication Schedule (Dashboard)
 st.header("📅 Today's Medication Schedule")
-if st.session_state.alarm_pending:
-    st.warning("⚠️ ATTENTION: It is 8:00 AM. Time to take your Metformin tablet!")
-    st.caption("Simulated reminder using the example prescription.")
-    voice_alert(st.session_state.speak_alarm)
-    st.session_state.speak_alarm = False
-    st.button("Dismiss Alarm", on_click=dismiss_alarm)
 
 # A compact, accessible circular progress indicator; no app theme overrides.
 st.image(
