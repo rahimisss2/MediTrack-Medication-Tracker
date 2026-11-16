@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Link, useLocation } from 'wouter';
 import { AlertTriangle, CalendarCheck, History, Pill, UserRound, X } from 'lucide-react';
 import { useStore } from '@/lib/store';
+import { DemoControls, DemoNotification, useDemoAlerts } from '@/components/demo-controls';
 
 const NAV = [
   { href: '/', label: 'Today', icon: CalendarCheck },
@@ -13,10 +14,11 @@ const NAV = [
 export function Shell({ children }: { children: ReactNode }) {
   const [loc] = useLocation();
   const { storageError, dismissError, profile } = useStore();
+  const demoAlerts = useDemoAlerts();
   const initials = profile.name.replace(/^(mr|mrs|ms|dr)\.?\s+/i, '').split(/\s+/).map((s) => s[0]).join('').slice(0, 2).toUpperCase() || 'M';
   return (
     <div className="min-h-[100dvh] md:flex">
-      <aside className="hidden md:flex md:w-64 shrink-0 flex-col bg-sidebar text-sidebar-foreground p-6 sticky top-0 h-[100dvh]">
+      <aside className="hidden md:flex md:w-64 shrink-0 flex-col bg-sidebar text-sidebar-foreground p-6 sticky top-0 h-[100dvh] overflow-y-auto">
         <Link href="/" className="flex items-center gap-3 mb-10" data-testid="link-home-logo">
           <span className="grid place-items-center size-11 rounded-full bg-sidebar-primary text-sidebar-primary-foreground"><Pill className="size-5" /></span>
           <span className="font-display text-2xl leading-none">MediTrack<span className="block mt-2 font-sans text-xs leading-normal opacity-80">Track Your Medicine</span></span>
@@ -32,6 +34,7 @@ export function Shell({ children }: { children: ReactNode }) {
             );
           })}
         </nav>
+        <DemoControls alerts={demoAlerts} />
         <Link href="/profile" className="mt-auto flex items-center gap-3 rounded-xl p-3 bg-sidebar-accent/60" data-testid="link-sidebar-profile">
           <span className="grid place-items-center size-10 rounded-full bg-sidebar-foreground/15 font-bold">{initials}</span>
           <span><span className="block font-bold">{profile.name}</span><span className="text-sm opacity-70">Age {profile.age}</span></span>
@@ -50,7 +53,14 @@ export function Shell({ children }: { children: ReactNode }) {
             <button onClick={dismissError} aria-label="Dismiss storage warning" className="p-1 rounded-lg hover:bg-destructive/10" data-testid="button-dismiss-error"><X className="size-5" /></button>
           </div>
         )}
-        <main className="px-5 md:px-10 pt-6 md:pt-10 max-w-5xl">{children}</main>
+        <main className="px-5 md:px-10 pt-6 md:pt-10 max-w-5xl">
+          <details className="md:hidden mb-5 rounded-2xl border bg-secondary/50 p-4">
+            <summary className="cursor-pointer font-bold text-primary">Demo Controls</summary>
+            <DemoControls alerts={demoAlerts} mobile />
+          </details>
+          <DemoNotification alerts={demoAlerts} />
+          {children}
+        </main>
       </div>
 
       <nav aria-label="Main" className="md:hidden fixed bottom-0 inset-x-0 z-40 bg-card/95 backdrop-blur border-t grid grid-cols-4 pb-[env(safe-area-inset-bottom)]">
