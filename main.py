@@ -4,6 +4,7 @@ import hashlib
 import json
 import time
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 # Configure a mobile-friendly page
 st.set_page_config(
@@ -28,6 +29,8 @@ for key, default in {
     "scan_item_id": None,
     "scan_results": {},
     "intake_log": [],
+    "caregiver_sos_pending": False,
+    "caregiver_sos_at": None,
 }.items():
     if key not in st.session_state:
         st.session_state[key] = default
@@ -53,14 +56,52 @@ def complete_intake(item_id):
     st.session_state.intake_log.append({
         "medication_id": item_id,
         "name": medication["name"],
-        "taken_at": datetime.now().isoformat(timespec="seconds"),
+        "taken_at": datetime.now(ZoneInfo("Asia/Kuala_Lumpur")).isoformat(timespec="seconds"),
+        "status": "Taken",
+        "dose": medication["dose"],
         "source": "manual confirmation after demo scan",
+        "verification": "Simulated camera scan — not verified by Gemini Vision API",
     })
     if item_id == 1:
         st.session_state.alarm_pending = False
         st.session_state.speak_alarm = False
+        st.session_state.caregiver_sos_pending = False
     st.session_state.scan_item_id = None
     st.session_state.scan_results.pop(item_id, None)
+
+
+def simulate_missed_dose():
+    """Display a demo escalation without contacting any external service."""
+    st.session_state.caregiver_sos_pending = True
+    st.session_state.caregiver_sos_at = datetime.now(
+        ZoneInfo("Asia/Kuala_Lumpur")
+    ).isoformat(timespec="seconds")
+
+
+def history_rows():
+    """Newest first; old session entries retain their original provenance."""
+    rows = []
+    for entry in reversed(st.session_state.intake_log):
+        recorded_at = datetime.fromisoformat(entry["taken_at"])
+        if recorded_at.tzinfo is not None:
+            recorded_at = recorded_at.astimezone(ZoneInfo("Asia/Kuala_Lumpur"))
+            zone_label = "MYT"
+        else:
+            zone_label = "timezone not recorded"
+        date_label = (
+            f"{recorded_at.strftime('%B')} {recorded_at.day}, "
+            f"{recorded_at.year}, {recorded_at.strftime('%I:%M %p').lstrip('0')}"
+        )
+        rows.append({
+            "Medication": entry["name"].split(" (")[0],
+            "Status": entry.get("status", "Taken"),
+            "Taken on": f"{date_label} ({zone_label})",
+            "Dose": entry.get("dose", "Not recorded"),
+            "Verification": entry.get(
+                "verification", "Simulated camera scan — manual confirmation"
+            ),
+        })
+    return rows
 
 
 def voice_alert(autoplay):
@@ -121,6 +162,7 @@ st.write("---")
 
 # Section 1: Patient Profile & Daily Status
 with st.sidebar:
+    page = st.radio("Navigation", ["Schedule", "History"], key="navigation")
     st.header("👤 Patient Profile")
     st.write("**Patient Name:** Mr. Ahmad")
     st.write("**Age:** 67 Years")
@@ -137,6 +179,52 @@ with st.sidebar:
         )
         if metformin_taken:
             st.caption("Metformin is already logged; another alarm will not reset it.")
+        st.button(
+            "Simulate Missed Dose Event",
+            on_click=simulate_missed_dose,
+            help="Demonstrates a caregiver escalation. No SMS or notification is sent.",
+        )
+    st.divider()
+    st.caption(
+        "Dikutip & Dikuasakan oleh: Gemini Vision API Framework Core for "
+        "academic innovation evaluation (AIMIX: IID 2026)."
+    )
+    st.caption(
+        "Attribution disclosure: the line above is the requested academic wording. "
+        "Gemini Vision API is not connected or used in this demo; "
+        "camera verification is simulated."
+    )
+
+# Keep urgent escalation visible on both Schedule and History.
+if st.session_state.caregiver_sos_pending:
+    st.error(
+        "🚨 CAREGIVER SOS ALERT — SIMULATION ONLY: Mr. Ahmad has missed his "
+        "scheduled 8:00 AM Metformin dose in this demo scenario. "
+        "An automated alert notification and SMS dispatch are being simulated "
+        "for his designated caregiver (Son: +6012-3456789). "
+        "No notification or SMS has actually been sent."
+    )
+    st.caption(f"Demo event time: {st.session_state.caregiver_sos_at} (MYT)")
+    if st.button("Dismiss simulated caregiver alert"):
+        st.session_state.caregiver_sos_pending = False
+        st.rerun()
+
+if page == "History":
+    st.header("History")
+    st.caption(
+        "Intake records from this Streamlit session, newest first. "
+        "Records are not saved after the session ends. "
+        "The initial example dose is not presented as a verified history record."
+    )
+    rows = history_rows()
+    if rows:
+        st.table(rows)
+    else:
+        st.info(
+            "No intake has been logged yet. Capture a demo photo on Schedule, "
+            "then select Complete & Log Intake to add a timestamped record."
+        )
+    st.stop()
 
 # Section 2: Medication Schedule (Dashboard)
 st.header("📅 Today's Medication Schedule")
