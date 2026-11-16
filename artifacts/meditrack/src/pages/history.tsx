@@ -45,6 +45,7 @@ export default function History() {
                     <div className="flex-1 min-w-0">
                       <p className="text-xl font-bold">{l.medicationName} <span className="font-normal text-muted-foreground">· {l.dose}</span></p>
                       <p className="text-base text-muted-foreground">Scheduled {formatTime(l.scheduledTime)} · taken {new Date(l.takenAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}</p>
+                      {l.source === 'photo-demo' && <p className="text-sm text-muted-foreground" data-testid="text-log-photo-source">Manually confirmed after simulated photo analysis · not AI-verified</p>}
                     </div>
                     <button onClick={() => setToDelete(l)} aria-label={`Delete entry for ${l.medicationName}`} className="p-3 rounded-full text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors" data-testid={`button-delete-log-${l.id}`}><Trash2 className="size-5" /></button>
                   </li>

@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 
 export type Medication = { id: string; name: string; purpose: string; time: string; dose: string; appearance: string; isExample?: boolean };
-export type DoseLog = { id: string; medicationId: string; medicationName: string; dose: string; scheduledTime: string; date: string; takenAt: string };
+export type DoseLog = { id: string; medicationId: string; medicationName: string; dose: string; scheduledTime: string; date: string; takenAt: string; source?: 'manual' | 'photo-demo' };
 export type Profile = { name: string; age: number };
 
 const KEYS = { meds: 'meditrack.medications.v1', logs: 'meditrack.logs.v1', profile: 'meditrack.profile.v1' };
@@ -45,7 +45,7 @@ type Ctx = {
   dismissError: () => void;
   saveMedication: (m: Omit<Medication, 'id'> & { id?: string }) => boolean;
   deleteMedication: (id: string) => boolean;
-  markTaken: (m: Medication) => boolean;
+  markTaken: (m: Medication, source?: DoseLog['source']) => boolean;
   undoTaken: (medicationId: string) => boolean;
   deleteLog: (id: string) => boolean;
   saveProfile: (p: Profile) => boolean;
@@ -96,9 +96,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setMeds(next);
     return true;
   };
-  const markTaken = (m: Medication) => {
+  const markTaken: Ctx['markTaken'] = (m, source = 'manual') => {
     if (logs.some((l) => l.medicationId === m.id && l.date === today)) return true;
-    const next = [...logs, { id: uid(), medicationId: m.id, medicationName: m.name, dose: m.dose, scheduledTime: m.time, date: today, takenAt: new Date().toISOString() }];
+    const next = [...logs, { id: uid(), medicationId: m.id, medicationName: m.name, dose: m.dose, scheduledTime: m.time, date: today, takenAt: new Date().toISOString(), source }];
     if (!write(KEYS.logs, next)) return false;
     setLogs(next);
     return true;

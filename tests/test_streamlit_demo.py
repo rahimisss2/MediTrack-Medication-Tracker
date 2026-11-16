@@ -103,7 +103,7 @@ class DemoTests(unittest.TestCase):
         self.photo = types.SimpleNamespace(getvalue=lambda: b"demo-photo")
         sleep = self.render()
         sleep.assert_called_once_with(2)
-        self.assertIn(("spinner", "AI is analyzing pill features..."), self.events)
+        self.assertIn(("spinner", "AI is analyzing pill features (shape, size, markings)..."), self.events)
         self.assertEqual(self.namespace["taken"], 2)
         self.assertFalse(self.st.session_state.intake_log)
         self.render().assert_not_called()

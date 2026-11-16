@@ -142,7 +142,7 @@ def simulate_pill_analysis(item_id, photo_bytes):
     fingerprint = hashlib.sha256(photo_bytes).hexdigest()
     if st.session_state.scan_results.get(item_id) != fingerprint:
         st.session_state.scan_results.pop(item_id, None)
-        with st.spinner("AI is analyzing pill features..."):
+        with st.spinner("AI is analyzing pill features (shape, size, markings)..."):
             time.sleep(2)
         st.session_state.scan_results[item_id] = fingerprint
 
