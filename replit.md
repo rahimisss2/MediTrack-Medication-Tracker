@@ -1,6 +1,6 @@
-# [Project name]
+# MediTrack AI
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+An English-language personal medication schedule and dose tracker.
 
 ## Run & Operate
 
@@ -26,7 +26,9 @@ _Populate as you build — short repo map plus pointers to the source-of-truth f
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- The first release is a single-device browser app. Medication schedules, profile, and dose logs stay in local browser storage; there is no account or cross-device sync.
+- Camera capture is a photo demonstration, not pill identification. Never show fabricated verification, confidence scores, or a recommendation to take a photographed medication.
+- Logging a dose requires an explicit user confirmation, not merely uploading a photo.
 
 ## Product
 
@@ -34,7 +36,7 @@ _Describe the high-level user-facing capabilities of this app once they exist._
 
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+- All application language must be English.
 
 ## Gotchas
 
