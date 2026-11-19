@@ -1,7 +1,9 @@
 # 💊 MediTrack AI — Smart Daily Medication Reminder & Verification System
 
 TEAM: MIXI
+
 NAME: CHE AHMAD RAHIMI BIN CHE ROZAID
+
 UNIVERSITY: UNIVERSITI TEKNIKAL MALAYSIA MELAKA (UTeM)
 
 DEMO VIDEO: https://drive.google.com/file/d/1t-kw3m7X0q-rGJKEoDpQjhwv1NUuOcs9/view?usp=drivesdk
