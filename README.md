@@ -5,7 +5,9 @@ NAME: CHE AHMAD RAHIMI BIN CHE ROZAID
 UNIVERSITY: UNIVERSITI TEKNIKAL MALAYSIA MELAKA (UTeM)
 
 DEMO VIDEO: https://drive.google.com/file/d/1t-kw3m7X0q-rGJKEoDpQjhwv1NUuOcs9/view?usp=drivesdk
+
 POSTER: https://drive.google.com/file/d/18GmhnwLY_PJV3ow-jZGMTNIjfK4lCBrV/view?usp=drivesdk
+
 LIVE APP: https://medi-track-medication-tracker.replit.app
 
 MediTrack AI is an interactive, senior-friendly digital application designed to tackle daily medication non-adherence among the elderly and chronic patients. Built with **Python and Streamlit**, this prototype serves as a high-fidelity **Proof-of-Concept (PoC)** optimized for the AIMIX: IID 2026 Innovation Competition under Track B4 (Digital Applications & Emerging Technologies).
